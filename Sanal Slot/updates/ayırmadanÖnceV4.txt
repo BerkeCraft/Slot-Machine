@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veren Slot</title>
+    <style>
+        @media (max-width: 768px) {
+            /* Küçük ekranlar için düzenlemeler */
+            .slot {
+                width: 60px;
+                height: 60px;
+                font-size: 36px;
+            }
+        
+            .button {
+                font-size: 16px;
+                padding: 8px 16px;
+            }
+        }
+        /* CSS stil tanımları burada yer alabilir */
+        body {
+            font-size: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        .container {
+            text-align: center;
+            margin-top: 50px;
+        }
+        .slot {
+            width: 70px;
+            height: 70px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            margin: 5px;
+        }
+        #winBox, #balance {
+            margin-top: 20px;
+            font-size: 24px;
+        }
+        .rotate-animation {
+            animation: spin 1.5s linear;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .button {
+            display: inline-block;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lokum Machine Berko Cash in</h1>
+        <label for="betInput">Bahis Değeri (TL):</label>
+        <input type="number" id="betInput" min="1" step="1" value="1">
+        <button class="button" onclick="startGame()">Oyuna Başla / Çevir</button>
+        <button class="button" onclick="resetGame()">Oyunu Sıfırla</button>
+        <div id="slots"></div>
+        <div id="winBox">Kazanç: <span id="currentWin">0</span> TL</div>
+        <div id="balance">Bakiye: 100 TL</div>
+    </div>
+
+    <script>
+        const symbols = [
+            { symbol: '🍒', probability: 0.40, payout: 0.03125 },//8 tanesi kazancın bahis değerinin 0.25 katını verir.
+            { symbol: '🍊', probability: 0.20, payout: 0.0625 },//8 tanesi kazancın bahis değerinin 0.50 katını verir.
+            { symbol: '🍇', probability: 0.125, payout: 0.1 },//8 tanesi kazancın bahis değerinin 0.80 katını verir.
+            { symbol: '🍓', probability: 0.05, payout: 0.25 },//8 tanesi kazancın bahis değerinin 2 katını verir.
+            { symbol: '🍋', probability: 0.0285714285714286, payout: 0.4375 },//8 tanesi kazancın bahis değerinin 3.5 katını verir.
+            { symbol: '🔔', probability: 0.025, payout: 0.500 },//8 tanesi kazancın bahis değerinin 4 katını verir.
+            { symbol: '💎', probability: 0.0125, payout: 1 }, //8 tanesi kazancın bahis değerinin 8 katını verir.
+        ];
+        //buradaki yanlış oranlarının tamamının yüzdelik olarak tam tutması yani (sürekli kiraz patlıyor elmas oyunda neredeyse yok.
+        //PTR düzeyince bunların ayarlanması lazım belirli bir PTR değeri oluşturulması lazım.
+
+        
+        const gridRows = 5;
+        const gridColumns = 6;
+        let isGameRunning = false;
+        let balance = 100;
+        let bet = 1;
+        let winInThisRound = 0;
+        let slotData = [];
+        let totalWon = 0;
+
+        function startGame() {
+            if (isGameRunning) return; // Oyun zaten başlamışsa işlem yapma
+            const betInput = document.getElementById('betInput');
+            bet = parseInt(betInput.value);
+            if (bet > balance) {
+                alert("Bahis miktarı bakiyeden fazla olamaz!");
+                return;
+            }
+
+            isGameRunning = true;
+            balance -= bet; // Bahis miktarını bakiyeden düş
+            updateBalance();
+
+            const slotsContainer = document.getElementById('slots');
+            slotsContainer.innerHTML = '';
+            slotData = [];
+
+            for (let row = 0; row < gridRows; row++) {
+                for (let col = 0; col < gridColumns; col++) {
+                    const randomSymbol = getRandomSymbol();
+                    slotData.push(randomSymbol);
+                    const slotElement = document.createElement('div');
+                    slotElement.classList.add('slot');
+                    slotElement.textContent = randomSymbol;
+                    slotsContainer.appendChild(slotElement);
+                }
+                slotsContainer.appendChild(document.createElement('br'));
+            }
+
+            animateSlots(slotData, 0);
+        }
+
+        function resetGame() {
+            isGameRunning = false;
+            winInThisRound = 0;
+            const winBox = document.getElementById('winBox');
+            winBox.textContent = 'Kazanç: 0 TL';
+            const slotsContainer = document.getElementById('slots');
+            slotsContainer.innerHTML = '';
+            balance = 100; // Oyun sıfırlandığında bakiyeyi 100 TL'ye ayarla
+            updateBalance();
+        }
+
+        function getRandomSymbol() {
+            const totalProbability = symbols.reduce((sum, symbol) => sum + symbol.probability, 0);
+            const randomValue = Math.random();
+
+            let cumulativeProbability = 0;
+            for (const symbol of symbols) {
+                cumulativeProbability += symbol.probability / totalProbability;
+                if (randomValue <= cumulativeProbability) {
+                    return symbol.symbol;
+                }
+            }
+
+            // Eğer bir sembol seçilemediyse (örneğin olasılıklar toplamı 1 değil), son sembolü döndürürüz.
+            return symbols[symbols.length - 1].symbol;
+        }
+
+        function animateSlots(slotData, currentIndex) {
+            const slotsContainer = document.getElementById('slots');
+            const slots = slotsContainer.getElementsByClassName('slot');
+
+            // Önceki dönme animasyonunu kaldır
+            for (let i = 0; i < slotData.length; i++) {
+                slots[i].classList.remove('rotate-animation');
+            }
+
+            // Şu anki sembolleri ekranda göster
+            for (let i = 0; i < slotData.length; i++) {
+                slots[i].textContent = slotData[i];
+            }
+
+            // Sonraki dönme animasyonunu ekle
+            const symbol = slotData[currentIndex];
+            slots[currentIndex].classList.add('rotate-animation');
+
+            setTimeout(function () {
+                slots[currentIndex].classList.remove('rotate-animation');
+                currentIndex++;
+                if (currentIndex < slotData.length) {
+                    animateSlots(slotData, currentIndex);
+                } else {
+                    checkWin(slotData);
+                }
+            }, 1.5); // sonra bir sonraki sembole geç
+        }
+
+        function checkWin(slotData) {
+            let changed = false;
+            let symbolsToAnimate = new Set();
+
+            for (let i = 0; i < slotData.length; i++) {
+                const symbolToCheck = slotData[i];
+                let count = 0;
+
+                for (let j = 0; j < slotData.length; j++) {
+                    if (slotData[j] === symbolToCheck) {
+                        count++;
+                    }
+                }
+
+                if (count >= 8) {
+                    changed = true;
+                    symbolsToAnimate.add(symbolToCheck);
+                    winInThisRound += calculateWinAmount(symbolToCheck) * bet;
+                }
+            }
+
+            const slotsContainer = document.getElementById('slots');
+            const slots = slotsContainer.getElementsByClassName('slot');
+            for (let i = 0; i < slotData.length; i++) {
+                const symbol = slotData[i];
+                slots[i].textContent = symbol;
+
+                if (symbolsToAnimate.has(symbol)) {
+                    slots[i].classList.add('rotate-animation'); // 8 veya daha fazla sembol varsa animasyonu ekle
+                } else {
+                    slots[i].classList.remove('rotate-animation'); // Değilse animasyonu kaldır
+                }
+            }
+
+            if (changed) {
+                setTimeout(function () {
+                    for (let i = 0; i < slotData.length; i++) {
+                        const symbol = slotData[i];
+                        if (symbolsToAnimate.has(symbol)) {
+                            slotData[i] = getRandomSymbol(); // 8 veya daha fazla sembolün yerine rastgele sembol yerleştir
+                        }
+                    }
+                    animateSlots(slotData, 0);
+                }, 2000); // 2 saniye sonra yeni dönüş başlasın
+            } else {
+                
+                isGameRunning = false;
+                totalWon += winInThisRound;
+                balance += winInThisRound; // Kazanç bakiyeye ekle
+                 winInThisRound = 0; // Tur sonundaki kazançları sıfırla
+                updateBalance();
+                setTimeout(function() {
+                    totalWon =0;
+                    updateBalance();
+                },150 )
+                updateCurrentWin();
+            }
+        }
+    
+       
+
+        function calculateWinAmount(symbol) {
+            const symbolInfo = symbols.find((s) => s.symbol === symbol);
+            return symbolInfo ? symbolInfo.payout : 0;
+        }
+
+        function updateBalance() {
+            const balanceElement = document.getElementById('balance');
+            balanceElement.textContent = `Bakiye: ${balance.toFixed(2)} TL`;
+        }
+
+        function updateCurrentWin() {
+            const currentWinElement = document.getElementById('currentWin');
+            currentWinElement.textContent = totalWon.toFixed(2);
+        }
+
+        function calculateRTP(symbols) {
+            let totalProbability = 0;
+            let totalPayout = 0;
+
+            // Tüm sembollerin çıkma olasılıklarını ve ödeme değerlerini döngüyle toplarız
+            for (const symbol of symbols) {
+                totalProbability += symbol.probability;
+                totalPayout += symbol.payout * symbol.probability;
+            }
+
+            // RTP oranını hesaplarız ve yüzde olarak döndürürüz
+            const rtp = (totalPayout / totalProbability) * 100;
+            return rtp.toFixed(2); // Ondalık kısmı iki basamakla sınırlarız
+        }
+
+        const rtpValue = calculateRTP(symbols);
+        console.log("RTP Oranı: %", rtpValue);
+
+    </script>
+</body>
+</html>

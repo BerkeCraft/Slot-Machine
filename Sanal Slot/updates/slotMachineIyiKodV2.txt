@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rastgele Slot Oyunu</title>
+    <style>
+        /* CSS stil tanımları burada yer alabilir */
+        .container {
+            text-align: center;
+        }
+        .slot {
+            width: 50px;
+            height: 50px;
+            display: inline-block;
+            text-align: center;
+            font-size: 30px;
+        }
+        #winBox, #balance {
+            margin-top: 20px;
+        }
+        .rotate-animation {
+            animation: spin 1.5s linear;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rastgele Slot Oyunu</h1>
+        <label for="betInput">Bahis Değeri (TL):</label>
+        <input type="number" id="betInput" min="1" step="1" value="1">
+        <button onclick="startGame()">Oyuna Başla / Çevir</button>
+        <button onclick="resetGame()">Oyunu Sıfırla</button>
+        <div id="slots"></div>
+        <div id="winBox">Kazanç: 0 TL</div>
+        <div id="balance">Bakiye: 100 TL</div>
+    </div>
+
+    <script>
+        const symbols = ['🍒', '🍊', '🍇', '🍓', '🍋', '🔔', '💎']; // Örnek semboller
+        const gridRows = 4;
+        const gridColumns = 8;
+        let isGameRunning = false;
+        let balance = 100;
+        let bet = 1;
+        let winInThisRound = 0;
+        let slotData = [];
+
+        function startGame() {
+            if (isGameRunning) return; // Oyun zaten başlamışsa işlem yapma
+            const betInput = document.getElementById('betInput');
+            bet = parseInt(betInput.value);
+            if (bet > balance) {
+                alert("Bahis miktarı bakiyeden fazla olamaz!");
+                return;
+            }
+
+            isGameRunning = true;
+            balance -= bet; // Bahis miktarını bakiyeden düş
+            updateBalance();
+
+            const slotsContainer = document.getElementById('slots');
+            slotsContainer.innerHTML = '';
+            slotData = [];
+
+            for (let row = 0; row < gridRows; row++) {
+                for (let col = 0; col < gridColumns; col++) {
+                    const randomSymbol = getRandomSymbol();
+                    slotData.push(randomSymbol);
+                    const slotElement = document.createElement('div');
+                    slotElement.classList.add('slot');
+                    slotElement.textContent = randomSymbol;
+                    slotsContainer.appendChild(slotElement);
+                }
+                slotsContainer.appendChild(document.createElement('br'));
+            }
+
+            animateSlots(slotData, 0);
+        }
+
+        function resetGame() {
+            isGameRunning = false;
+            winInThisRound = 0;
+            const winBox = document.getElementById('winBox');
+            winBox.textContent = 'Kazanç: 0 TL';
+            const slotsContainer = document.getElementById('slots');
+            slotsContainer.innerHTML = '';
+            balance = 100; // Oyun sıfırlandığında bakiyeyi 100 TL'ye ayarla
+            updateBalance();
+        }
+
+        function getRandomSymbol() {
+            const randomIndex = Math.floor(Math.random() * symbols.length);
+            return symbols[randomIndex];
+        }
+
+        function animateSlots(slotData, currentIndex) {
+            const slotsContainer = document.getElementById('slots');
+            const slots = slotsContainer.getElementsByClassName('slot');
+
+            // Önceki dönme animasyonunu kaldır
+            for (let i = 0; i < slotData.length; i++) {
+                slots[i].classList.remove('rotate-animation');
+            }
+
+            // Şu anki sembolleri ekranda göster
+            for (let i = 0; i < slotData.length; i++) {
+                slots[i].textContent = slotData[i];
+            }
+
+            // Sonraki dönme animasyonunu ekle
+            const symbol = slotData[currentIndex];
+            slots[currentIndex].classList.add('rotate-animation');
+
+            setTimeout(function () {
+                slots[currentIndex].classList.remove('rotate-animation');
+                currentIndex++;
+                if (currentIndex < slotData.length) {
+                    animateSlots(slotData, currentIndex);
+                } else {
+                    checkWin(slotData);
+                }
+            }, 1.5); // 150ms sonra bir sonraki sembole geç
+        }
+
+        function checkWin(slotData) {
+            let changed = false;
+            let symbolsToAnimate = new Set();
+
+            for (let i = 0; i < slotData.length; i++) {
+                const symbolToCheck = slotData[i];
+                let count = 0;
+
+                for (let j = 0; j < slotData.length; j++) {
+                    if (slotData[j] === symbolToCheck) {
+                        count++;
+                    }
+                }
+
+                if (count >= 8) {
+                    changed = true;
+                    symbolsToAnimate.add(symbolToCheck);
+                    winInThisRound += calculateWinAmount(symbolToCheck) * bet;
+                }
+            }
+
+            const slotsContainer = document.getElementById('slots');
+            const slots = slotsContainer.getElementsByClassName('slot');
+            for (let i = 0; i < slotData.length; i++) {
+                const symbol = slotData[i];
+                slots[i].textContent = symbol;
+
+                if (symbolsToAnimate.has(symbol)) {
+                    slots[i].classList.add('rotate-animation'); // 8 veya daha fazla sembol varsa animasyonu ekle
+                } else {
+                    slots[i].classList.remove('rotate-animation'); // Değilse animasyonu kaldır
+                }
+            }
+
+            if (changed) {
+                setTimeout(function () {
+                    for (let i = 0; i < slotData.length; i++) {
+                        const symbol = slotData[i];
+                        if (symbolsToAnimate.has(symbol)) {
+                            slotData[i] = getRandomSymbol(); // 8 veya daha fazla sembolün yerine rastgele sembol yerleştir
+                        }
+                    }
+                    animateSlots(slotData, 0);
+                }, 2000); // 2 saniye sonra yeni dönüş başlasın
+            } else {
+                isGameRunning = false;
+                balance += winInThisRound; // Kazanç bakiyeye ekle
+                winInThisRound = 0; // Tur sonundaki kazançları sıfırla
+                updateBalance();
+            }
+        }
+
+        function calculateWinAmount(symbol) {
+            switch (symbol) {
+                case '🍒':
+                    return 0.1;
+                case '🍊':
+                    return 0.3;
+                case '🍇':
+                    return 0.5;
+                case '🍓':
+                    return 1;
+                case '🍋':
+                    return 2;
+                case '🔔':
+                    return 5;
+                case '💎':
+                    return 10;
+                default:
+                    return 0;
+            }
+        }
+
+        function updateBalance() {
+            const balanceElement = document.getElementById('balance');
+            balanceElement.textContent = `Bakiye: ${balance.toFixed(2)} TL`;
+        }
+    </script>
+</body>
+</html>

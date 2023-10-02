@@ -1,0 +1,59 @@
+@media (max-width: 768px) {
+    /* Küçük ekranlar için düzenlemeler */
+    .slot {
+        width: 60px;
+        height: 60px;
+        font-size: 36px;
+    }
+
+    .button {
+        font-size: 16px;
+        padding: 8px 16px;
+    }
+}
+/* CSS stil tanımları burada yer alabilir */
+body {
+    font-size: 20px;
+    background-color: #f9f9f9;
+    color: #333;
+}
+.container {
+    text-align: center;
+    margin-top: 50px;
+}
+.slot {
+    width: 70px;
+    height: 70px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    margin: 5px;
+}
+#winBox, #balance {
+    margin-top: 20px;
+    font-size: 24px;
+}
+.rotate-animation {
+    animation: spin 1.5s linear;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.button {
+    display: inline-block;
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+}
+.button:hover {
+    background-color: #0056b3;
+}
